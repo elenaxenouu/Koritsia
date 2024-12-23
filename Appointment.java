@@ -5,13 +5,16 @@ public class Appointment {
     private String serviceName;
     private double cost;
     private String duration;
-    private LocalTime time;  // Χρησιμοποιούμε LocalTime και όχι LocalDateTime
+    private LocalTime startTime;
+    private LocalTime endTime;
 
-    public Appointment(String serviceName, double cost, String duration, LocalTime time) {
+    // Ανανεωμένος constructor για να δεχτεί δύο ώρες (startTime και endTime)
+    public Appointment(String serviceName, double cost, String duration, LocalTime startTime, LocalTime endTime) {
         this.serviceName = serviceName;
         this.cost = cost;
         this.duration = duration;
-        this.time = time;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
     public String getServiceName() {
@@ -26,13 +29,17 @@ public class Appointment {
         return duration;
     }
 
-    public LocalTime getTime() {
-        return time;
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
     }
 
     @Override
     public String toString() {
-        // Εμφανίζουμε μόνο την ώρα χωρίς ημερομηνία
-        return serviceName + " - " + time.format(DateTimeFormatter.ofPattern("HH:mm")) + " - " + duration + " - " + cost + "€";
+        // Εμφανίζουμε την αρχική και τελική ώρα μαζί με την υπόλοιπη πληροφορία
+        return serviceName + " - " + startTime.format(DateTimeFormatter.ofPattern("HH:mm")) + " to " + endTime.format(DateTimeFormatter.ofPattern("HH:mm")) + " - " + duration + " - " + cost + "€";
     }
 }

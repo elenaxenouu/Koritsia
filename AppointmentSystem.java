@@ -59,16 +59,17 @@ public class AppointmentSystem {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length == 4) {
+                if (parts.length == 5) {  // Εδώ διαβάζουμε 5 τμήματα: serviceName, cost, duration, startTime, endTime
                     String serviceName = parts[0];
                     double cost = Double.parseDouble(parts[1]);
                     String duration = parts[2];
                     
-                    // Διαβάζουμε μόνο την ώρα και την αναλύουμε ως LocalTime
-                    LocalTime time = LocalTime.parse(parts[3], DateTimeFormatter.ofPattern("HH:mm"));
+                    // Διαβάζουμε τις δύο ώρες και τις αναλύουμε ως LocalTime
+                    LocalTime startTime = LocalTime.parse(parts[3], DateTimeFormatter.ofPattern("HH:mm"));
+                    LocalTime endTime = LocalTime.parse(parts[4], DateTimeFormatter.ofPattern("HH:mm"));
                     
-                    // Δημιουργούμε το ραντεβού με την τρέχουσα ημερομηνία και την ώρα
-                    Appointment appointment = new Appointment(serviceName, cost, duration, time);
+                    // Δημιουργούμε το ραντεβού με την τρέχουσα ημερομηνία και τις δύο ώρες
+                    Appointment appointment = new Appointment(serviceName, cost, duration, startTime, endTime);
                     customers.get(0).addAppointment(appointment); // Πρόσθεση του ραντεβού στον πελάτη
                 }
             }
@@ -78,14 +79,17 @@ public class AppointmentSystem {
     }
     
     
-
+    
     public static void saveAppointments() {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(APPOINTMENT_FILE))) {
             for (Customer customer : customers) {
                 for (Appointment appointment : customer.getAppointments()) {
-                    // Μορφοποιούμε μόνο την ώρα
-                    String timeString = appointment.getTime().format(DateTimeFormatter.ofPattern("HH:mm"));
-                    bw.write(appointment.getServiceName() + "," + appointment.getCost() + "," + appointment.getDuration() + "," + timeString);
+                    // Μορφοποιούμε τις δύο ώρες ως συμβολοσειρές
+                    String startTimeString = appointment.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm"));
+                    String endTimeString = appointment.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"));
+                    
+                    // Αποθηκεύουμε τα δεδομένα του ραντεβού στο αρχείο
+                    bw.write(appointment.getServiceName() + "," + appointment.getCost() + "," + appointment.getDuration() + "," + startTimeString + "," + endTimeString);
                     bw.newLine();
                 }
             }
@@ -97,22 +101,37 @@ public class AppointmentSystem {
     
 
     public static void customerLogin(Scanner scanner) {
-        System.out.print("\nEnter your username: ");
-        String username = scanner.nextLine();
-        System.out.print("Enter your password: ");
-        String password = scanner.nextLine();
-
-        String encryptedPassword = encryptPassword(password);
-
-        for (Customer customer : customers) {
-            if (customer.getUsername().equals(username) && customer.getPassword().equals(encryptedPassword)) {
-                System.out.println("Login successful! Welcome, " + customer.getName() + "!");
-                Menu.showCustomerMenu(customer, scanner);
-                return;
+        // Βρόχος που συνεχίζει να ζητάει μέχρι να εισαχθούν σωστά τα στοιχεία
+        while (true) {
+            System.out.print("\nEnter your username: ");
+            String username = scanner.nextLine();
+            System.out.print("Enter your password: ");
+            String password = scanner.nextLine();
+    
+            // Κρυπτογραφούμε τον κωδικό για να τον συγκρίνουμε
+            String encryptedPassword = encryptPassword(password);
+    
+            // Ελέγχουμε αν το όνομα χρήστη και ο κωδικός είναι σωστά
+            boolean found = false;
+            for (Customer customer : customers) {
+                if (customer.getUsername().equals(username) && customer.getPassword().equals(encryptedPassword)) {
+                    // Εάν τα στοιχεία είναι σωστά, κάνουμε login και εμφανίζουμε το μενού του πελάτη
+                    System.out.println("Login successful! Welcome, " + customer.getName() + "!");
+                    Menu.showCustomerMenu(customer, scanner);
+                    found = true;
+                    break;
+                }
+            }
+    
+            // Αν δεν βρέθηκε το σωστό username/password, ζητάμε ξανά
+            if (found) {
+                return; // Εάν ο χρήστης μπήκε επιτυχώς, επιστρέφουμε και τελειώνει η μέθοδος
+            } else {
+                System.out.println("Incorrect username or password. Please try again.");
             }
         }
-        System.out.println("Incorrect username or password. Please try again.");
     }
+    
 
     public static void registerCustomer(Scanner scanner) {
         System.out.print("\nEnter your name: ");
@@ -176,18 +195,16 @@ public class AppointmentSystem {
     
     
 
-   
-
     public static void addAppointment(Customer customer, Scanner scanner) {
         int serviceChoice = -1;
-        
+
         // Επαναλαμβάνουμε την επιλογή υπηρεσίας μέχρι να δώσει σωστή τιμή
         while (serviceChoice < 1 || serviceChoice > SERVICES.length) {
             System.out.println("\nSelect a service:");
             for (int i = 0; i < SERVICES.length; i++) {
                 System.out.println((i + 1) + ". " + SERVICES[i].getName() + " - " + SERVICES[i].getDuration() + " - " + SERVICES[i].getCost() + "€");
             }
-    
+
             System.out.print("Enter service number: ");
             // Ελέγχουμε αν ο χρήστης εισάγει έγκυρο αριθμό
             if (scanner.hasNextInt()) {
@@ -197,41 +214,59 @@ public class AppointmentSystem {
                 System.out.println("Invalid input. Please enter a valid number.");
                 scanner.nextLine(); // clear invalid input
             }
-    
+
             if (serviceChoice < 1 || serviceChoice > SERVICES.length) {
                 System.out.println("Invalid service choice. Please try again.");
             }
         }
-    
+
         // Αν η τιμή είναι έγκυρη, συνεχίζουμε
         Service selectedService = SERVICES[serviceChoice - 1];
-    
-        LocalTime appointmentTime = null;
-        // Επαναλαμβάνουμε την είσοδο της ώρας μέχρι να είναι έγκυρη
-        while (appointmentTime == null) {
-            System.out.print("Operating hours are from 08:00 to 22:00.\nEnter time (format: HH:mm): ");
-            String timeStr = scanner.nextLine();
-    
+
+        LocalTime startTime = null;
+        LocalTime endTime = null;
+        // Επαναλαμβάνουμε την είσοδο του εύρους ώρας μέχρι να είναι έγκυρο
+        while (startTime == null || endTime == null) {
+            System.out.print("Operating hours are from 08:00 to 22:00.\nEnter time range (format: HH:mm-HH:mm): ");
+            String timeRangeStr = scanner.nextLine();
+
             try {
-                // Αναλύουμε την ώρα
-                appointmentTime = LocalTime.parse(timeStr, DateTimeFormatter.ofPattern("HH:mm"));
-    
-                // Έλεγχος αν η ώρα είναι εντός των ωρών λειτουργίας (08:00 - 22:00)
-                if (appointmentTime.isBefore(LocalTime.of(8, 0)) || appointmentTime.isAfter(LocalTime.of(22, 0))) {
-                    System.out.println("Invalid time. The time must be between 08:00 and 22:00. Please try again.");
-                    appointmentTime = null; // Επαναλαμβάνουμε την εισαγωγή
+                // Διαχωρίζουμε την εισαγωγή του χρήστη στο εύρος ωρών
+                String[] timeParts = timeRangeStr.split("-");
+                if (timeParts.length == 2) {
+                    // Αναλύουμε την αρχική και την τελική ώρα
+                    startTime = LocalTime.parse(timeParts[0], DateTimeFormatter.ofPattern("HH:mm"));
+                    endTime = LocalTime.parse(timeParts[1], DateTimeFormatter.ofPattern("HH:mm"));
+
+                    // Έλεγχος αν οι ώρες είναι εντός των ωρών λειτουργίας
+                    if (startTime.isBefore(LocalTime.of(8, 0)) || endTime.isAfter(LocalTime.of(22, 0))) {
+                        System.out.println("Invalid time range. The time must be between 08:00 and 22:00. Please try again.");
+                        startTime = null;  // Επαναλαμβάνουμε την εισαγωγή
+                        endTime = null;
+                    } else if (startTime.isAfter(endTime)) {
+                        System.out.println("Invalid time range. The start time must be before the end time. Please try again.");
+                        startTime = null;  // Επαναλαμβάνουμε την εισαγωγή
+                        endTime = null;
+                    }
+                } else {
+                    System.out.println("Invalid format. Please use the format HH:mm-HH:mm.");
                 }
             } catch (Exception e) {
                 System.out.println("Invalid time format. Please try again.");
             }
         }
-    
+
         // Δημιουργούμε το ραντεβού με την ώρα που εισήγαγε ο χρήστης
-        Appointment newAppointment = new Appointment(selectedService.getName(), selectedService.getCost(), selectedService.getDuration(), appointmentTime);
+        Appointment newAppointment = new Appointment(selectedService.getName(), selectedService.getCost(), selectedService.getDuration(), startTime, endTime);
         customer.addAppointment(newAppointment);
-    
+
         System.out.println("Appointment successfully booked!");
     }
+
+
+   
+
+    
       
 
     public static void viewAppointments(Customer customer) {
