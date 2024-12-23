@@ -1,0 +1,2 @@
+Massage,50.0,90 minutes,09:00
+Natural Waxing,35.0,45 minutes,10:20
