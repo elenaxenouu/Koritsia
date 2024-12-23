@@ -67,7 +67,7 @@ public class Menu {
 
             switch (choice) {
                 case "1":
-                    System.out.println("Optimized appointment schedule: (under construction).");
+                    AppointmentSystem.viewOptimizedSchedule();
                     break;
                 case "2":
                     System.out.println("Logging out of the administrator account.");

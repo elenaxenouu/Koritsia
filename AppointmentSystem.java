@@ -2,9 +2,8 @@ import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
@@ -277,6 +276,20 @@ public class AppointmentSystem {
             for (Appointment appointment : customer.getAppointments()) {
                 System.out.println(appointment);
             }
+        }
+    }
+
+    public static void viewOptimizedSchedule() {
+        ArrayList<Appointment> allAppointments = new ArrayList<>();
+        for (Customer customer : customers) {
+            allAppointments.addAll(customer.getAppointments());
+        }
+
+        List<Appointment> optimizedSchedule = OptimizationAlgorithm.optimizeAppointments(allAppointments);
+
+        System.out.println("\nOptimized appointment schedule:");
+        for (Appointment appointment : optimizedSchedule) {
+            System.out.println(appointment);
         }
     }
 
